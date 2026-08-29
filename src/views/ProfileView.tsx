@@ -22,23 +22,16 @@ export default function ProfileView() {
   
   const [syncMessage, setSyncMessage] = React.useState('');
 
+  const [syncStats, setSyncStats] = React.useState<any>(null);
+
   React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('strava_success') === 'true') {
-       setSyncStatus('success');
-       setSyncMessage('Strava connecté avec succès !');
-       window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (params.get('strava_error')) {
-       setSyncStatus('error');
-       setSyncMessage(`Erreur Strava: ${params.get('strava_error')}`);
-       window.history.replaceState({}, document.title, window.location.pathname);
-    }
   }, [setSyncStatus]);
 
   const handleSync = async () => {
     if (!profile || profile.dataConnection === 'none') return;
     setSyncStatus('syncing');
     setSyncMessage('Synchronisation...');
+    setSyncStats(null);
     
     try {
       const res = await healthService.syncWorkouts(profile.dataConnection);
@@ -46,6 +39,9 @@ export default function ProfileView() {
         setSyncStatus('success');
         setLastSyncedAt(new Date().toISOString());
         setSyncMessage(res.message);
+        if (res.stats) {
+          setSyncStats(res.stats);
+        }
       } else {
         setSyncStatus('error');
         setSyncMessage(res.message || 'Erreur');
@@ -135,31 +131,36 @@ export default function ProfileView() {
         <div className="flex items-center gap-3">
           <div className={`w-3 h-3 rounded-full ${profile.dataConnection !== 'none' ? 'bg-green-500' : 'bg-gray-300'}`} />
           <div className="text-sm font-bold text-plana-black">
-            {profile.dataConnection === 'apple_health' ? 'Apple Health' : profile.dataConnection === 'google_health_connect' ? 'Google Health Connect' : profile.dataConnection === 'demo' ? 'Mode Demo' : profile.dataConnection === 'strava' ? 'Strava' : 'Aucune connexion'}
+            {profile.dataConnection === 'apple_health' ? 'Apple Health' : profile.dataConnection === 'google_health_connect' ? 'Google Health Connect' : profile.dataConnection === 'demo' ? 'Mode Démo' : 'Aucune connexion'}
           </div>
         </div>
 
-        {profile.dataConnection !== 'strava' && (
-           <button
-             onClick={() => {
-                store.updateAthleteProfile({ dataConnection: 'strava' });
-                window.location.href = '/api/strava/auth';
-             }}
-             className="w-full py-2.5 bg-[#FC4C02] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
-           >
-             <Activity size={16} /> Connecter Strava
-           </button>
+        {profile.dataConnection === 'none' && (
+           <div className="space-y-2 mt-4">
+             <button
+               onClick={() => store.updateAthleteProfile({ dataConnection: 'apple_health' })}
+               className="w-full py-2.5 bg-black text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+             >
+               <Watch size={16} /> Connecter Apple Health
+             </button>
+             <button
+               onClick={() => store.updateAthleteProfile({ dataConnection: 'google_health_connect' })}
+               className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95"
+             >
+               <Activity size={16} /> Connecter Google Health
+             </button>
+           </div>
         )}
 
-        {profile.dataConnection === 'strava' && (
+        {(profile.dataConnection === 'apple_health' || profile.dataConnection === 'google_health_connect') && (
            <button
              onClick={async () => {
-                await healthService.disconnect('strava');
+                await healthService.disconnect(profile.dataConnection);
                 store.updateAthleteProfile({ dataConnection: 'none' });
              }}
              className="w-full py-2.5 bg-gray-100 text-gray-500 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-95 mb-2"
            >
-             <LogOut size={16} /> Déconnecter Strava
+             <LogOut size={16} /> Déconnecter
            </button>
         )}
         
@@ -194,6 +195,14 @@ export default function ProfileView() {
             {(syncStatus === 'success' || syncStatus === 'error') && syncMessage && (
               <div className={`mt-3 text-xs font-bold text-center ${syncStatus === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
                 {syncMessage}
+                {syncStats && (
+                  <div className="mt-2 text-[10px] text-slate-500 font-medium bg-gray-50 p-2 rounded-lg text-left">
+                    • {syncStats.analyzed} activités analysées<br/>
+                    • {syncStats.new} nouvelles ajoutées<br/>
+                    • {syncStats.duplicates} doublons ignorés<br/>
+                    • {syncStats.matched} associées au planning
+                  </div>
+                )}
               </div>
             )}
             {profile.dataConnection !== 'demo' && (

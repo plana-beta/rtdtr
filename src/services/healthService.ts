@@ -2,7 +2,6 @@ import { HealthAdapter, HealthConnectionStatus } from './adapters/types';
 import { HealthKitAdapter } from './adapters/HealthKitAdapter';
 import { HealthConnectAdapter } from './adapters/HealthConnectAdapter';
 import { DemoAdapter } from './adapters/DemoAdapter';
-import { StravaAdapter } from './adapters/StravaAdapter';
 import { useAppStore } from '../store';
 import { normalizeWorkout, isDuplicateWorkout, matchToPlannedWorkout } from './SyncService';
 
@@ -15,8 +14,7 @@ class HealthService {
     this.adapters = {
       apple_health: new HealthKitAdapter(),
       google_health_connect: new HealthConnectAdapter(),
-      demo: this.demoAdapter,
-      strava: new StravaAdapter()
+      demo: this.demoAdapter
     };
   }
 
@@ -51,7 +49,7 @@ class HealthService {
     return await adapter.getConnectionStatus();
   }
 
-  async syncWorkouts(provider: string): Promise<{ success: boolean; message: string; count?: number }> {
+  async syncWorkouts(provider: string): Promise<{ success: boolean; message: string; stats?: { analyzed: number; new: number; duplicates: number; matched: number } }> {
     const adapter = this.getAdapter(provider);
     if (!adapter) return { success: false, message: "Aucun fournisseur configuré." };
 
@@ -60,57 +58,69 @@ class HealthService {
       return { success: false, message: status.error || "Non disponible sur cet appareil." };
     }
     
-    // Auto-connect if not connected for demo purposes or smooth flow
     if (!status.connected) {
       const granted = await adapter.requestPermissions();
       if (!granted) return { success: false, message: "Permissions refusées." };
     }
 
-    // Determine sync window (e.g., last 30 days)
+    const store = useAppStore.getState();
+    const lastSyncStr = localStorage.getItem(`plana_last_sync_${provider}`);
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 30);
+    
+    if (lastSyncStr) {
+      // Incremental sync: last sync minus 24 hours (margin for modified workouts)
+      startDate.setTime(new Date(lastSyncStr).getTime() - 24 * 60 * 60 * 1000);
+    } else {
+      // First sync: last 30 days
+      startDate.setDate(startDate.getDate() - 30);
+    }
 
-    const store = useAppStore.getState();
     try {
       const extWorkouts = await adapter.getWorkouts(startDate, endDate);
       const existingWorkouts = [...store.actualWorkouts];
       const plannedWorkouts = store.plannedWorkouts;
       
+      let analyzedCount = extWorkouts.length;
       let importedCount = 0;
+      let duplicateCount = 0;
+      let matchedCount = 0;
 
       for (const ext of extWorkouts) {
         const actual = normalizeWorkout(ext);
         
         if (!isDuplicateWorkout(actual, existingWorkouts)) {
-          // 1. Match to planned workout
           const matchedPlanned = matchToPlannedWorkout(actual, plannedWorkouts);
           
           if (matchedPlanned) {
             actual.plannedWorkoutId = matchedPlanned.id;
-            // Update planned workout status
+            matchedCount++;
             store.updatePlannedWorkout({
               ...matchedPlanned,
               status: 'completed'
             });
           }
           
-          // 2. Add to store
           store.addActualWorkout(actual);
           importedCount++;
-          // Since existingWorkouts array reference might not update mid-loop if we don't fetch it, 
-          // we should append to our local array for deduplication within the same batch
           existingWorkouts.push(actual);
+        } else {
+          duplicateCount++;
         }
       }
 
-      // Update sync status in store
       store.setSyncStatus('success');
-
-      return { success: true, message: `${importedCount} entraînements importés`, count: importedCount };
+      localStorage.setItem(`plana_last_sync_${provider}`, new Date().toISOString());
+      
+      return { 
+        success: true, 
+        message: `Synchronisation terminée. ${analyzedCount} analysées, ${importedCount} nouvelles, ${duplicateCount} doublons ignorés, ${matchedCount} associées au planning.`, 
+        stats: { analyzed: analyzedCount, new: importedCount, duplicates: duplicateCount, matched: matchedCount } 
+      };
     } catch (err) {
+      console.error('[HealthService] Sync error:', err);
       store.setSyncStatus('error');
-      return { success: false, message: "Erreur lors de la synchronisation." };
+      return { success: false, message: "Erreur inattendue lors de la lecture des données de santé." };
     }
   }
 }

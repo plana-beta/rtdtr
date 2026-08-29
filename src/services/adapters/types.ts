@@ -1,5 +1,5 @@
 export interface ExternalWorkout {
-  source: 'apple_health' | 'google_health_connect' | 'demo' | 'Garmin' | 'strava';
+  source: 'apple_health' | 'google_health_connect' | 'demo' | 'Garmin';
   sourceId: string;
   sport: string; // Will be normalized (e.g. 'running', 'swimming', 'cycling')
   startTime: string; // ISO 8601 Date String

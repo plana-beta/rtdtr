@@ -1,6 +1,8 @@
 import { ExternalWorkout } from './adapters/types';
 import { ActualWorkout, Sport, PlannedWorkout } from '../domain/models';
 import { parseISO, format } from 'date-fns';
+import { calculateTSS, calculateHrTSS, calculateDurationTSS } from '../lib/trainingEngine';
+import { useAppStore } from '../store';
 
 export function normalizeSport(externalSport: string): Sport {
   const s = externalSport.toLowerCase();
@@ -25,6 +27,25 @@ export function normalizeWorkout(ext: ExternalWorkout): ActualWorkout {
      dateStr = format(parseISO(ext.startTime), 'yyyy-MM-dd');
   }
 
+  let tss = undefined;
+  try {
+    const store = useAppStore.getState();
+    const hrMax = store.athleteProfile?.hrMax || 190;
+    const ftp = 200; // Mock FTP for now, since it's not strictly in profile, or maybe it is per sport
+
+    const np = ext.averagePower || ext.normalizedPower;
+    if (np) {
+      tss = calculateTSS(ext.duration, np, ftp);
+    } else if (ext.averageHeartRate) {
+      tss = calculateHrTSS(ext.duration, ext.averageHeartRate, hrMax);
+    } else {
+      tss = calculateDurationTSS(durationMin);
+    }
+  } catch (e) {
+    // If store is not accessible (e.g. in some pure unit tests), default calculate
+    tss = calculateDurationTSS(durationMin);
+  }
+
   return {
     id: `${ext.source}-${ext.sourceId || crypto.randomUUID()}`,
     source: ext.source as ActualWorkout['source'],
@@ -36,6 +57,7 @@ export function normalizeWorkout(ext: ExternalWorkout): ActualWorkout {
     distanceKm,
     averageHeartRate: ext.averageHeartRate,
     normalizedPower: ext.averagePower || ext.normalizedPower, // Use average if NP missing
+    tss
   };
 }
 

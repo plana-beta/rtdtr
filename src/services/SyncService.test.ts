@@ -38,9 +38,9 @@ describe('SyncService', () => {
       expect(actual.averageHeartRate).toBe(150);
     });
 
-    it('normalizes a Strava workout with power', () => {
+    it('normalizes an Apple Health workout with power', () => {
       const ext: ExternalWorkout = {
-        source: 'strava',
+        source: 'apple_health',
         sourceId: '98765',
         sport: 'VirtualRide',
         startTime: '2023-11-15T18:00:00Z',
@@ -50,12 +50,28 @@ describe('SyncService', () => {
 
       const actual = normalizeWorkout(ext);
 
-      expect(actual.source).toBe('strava');
+      expect(actual.source).toBe('apple_health');
       expect(actual.sourceId).toBe('98765');
       expect(actual.sport).toBe('Ride'); 
       expect(actual.date).toBe('2023-11-15');
       expect(actual.durationMin).toBe(120);
       expect(actual.normalizedPower).toBe(220);
+    });
+
+    it('preserves the local date correctly when close to midnight without UTC shift issues', () => {
+      // Local time string provided by native adapter (e.g., Apple Health usually provides local ISO strings or offset strings)
+      // Representing 23:50 local time on Nov 15.
+      const ext: ExternalWorkout = {
+        source: 'google_health_connect',
+        sourceId: 'mid-1',
+        sport: 'Run',
+        startTime: '2023-11-15T23:50:00', // Local time without Z
+        duration: 3600,
+      };
+
+      const actual = normalizeWorkout(ext);
+      // Ensure the 'date' string stays 2023-11-15 and is not shifted to 2023-11-16 due to UTC conversion
+      expect(actual.date).toBe('2023-11-15');
     });
   });
 

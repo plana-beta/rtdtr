@@ -14,7 +14,7 @@ export interface AthleteProfile {
   };
   hrMax?: number;
   goal?: Goal;
-  dataConnection: 'none' | 'apple_health' | 'google_health_connect' | 'demo' | 'strava';
+  dataConnection: 'none' | 'apple_health' | 'google_health_connect' | 'demo';
 }
 
 export interface Goal {
@@ -44,7 +44,7 @@ export interface PlannedWorkout {
 
 export interface ActualWorkout {
   id: string;
-  source: 'apple_health' | 'google_health_connect' | 'manual' | 'demo' | 'Garmin' | 'strava';
+  source: 'apple_health' | 'google_health_connect' | 'manual' | 'demo' | 'Garmin';
   sourceId?: string;
   sport: Sport;
   date: string;
