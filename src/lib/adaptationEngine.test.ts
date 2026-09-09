@@ -70,11 +70,16 @@ describe('AdaptationEngine', () => {
     ];
     const currentDate = new Date('2026-08-28T12:00:00');
     
-    const result = adaptPlan(baseProfile, planned, actuals, pmcExtremeFatigue, currentDate);
+    const result1 = adaptPlan(baseProfile, planned, actuals, pmcExtremeFatigue, currentDate);
     
-    const p2 = result.updatedPlannedWorkouts.find(p => p.id === 'p2');
-    expect(p2?.targetDurationMin).toBeLessThan(120); // volume reduced
-    expect(p2?.status).toBe('adapted');
+    const p2_1 = result1.updatedPlannedWorkouts.find(p => p.id === 'p2');
+    expect(p2_1?.targetDurationMin).toBeLessThan(120); // volume reduced
+    expect(p2_1?.status).toBe('adapted');
+    
+    // Idempotency: run it again with the adapted plan, should not reduce further
+    const result2 = adaptPlan(baseProfile, result1.updatedPlannedWorkouts, actuals, pmcExtremeFatigue, currentDate);
+    const p2_2 = result2.updatedPlannedWorkouts.find(p => p.id === 'p2');
+    expect(p2_2?.targetDurationMin).toBe(p2_1?.targetDurationMin); // should be equal
   });
 
   it('Test 6 - Séance réalisée beaucoup plus longtemps que prévu', () => {

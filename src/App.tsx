@@ -14,6 +14,8 @@ import OnboardingView from './views/OnboardingView';
 import { TabID } from './types';
 import { AnimatePresence } from 'motion/react';
 
+import CoachView from './views/CoachView';
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabID>('today');
   const athleteProfile = useAppStore(state => state.athleteProfile);
@@ -41,6 +43,7 @@ export default function App() {
             {activeTab === 'progression' && <ProgressionView key="progression" />}
             {activeTab === 'goal' && <GoalView key="goal" />}
             {activeTab === 'profile' && <ProfileView key="profile" />}
+            {activeTab === 'coach' && <CoachView key="coach" />}
           </AnimatePresence>
         </Layout>
       )}

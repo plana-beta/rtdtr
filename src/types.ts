@@ -1,4 +1,4 @@
-export type TabID = 'today' | 'plan' | 'progression' | 'goal' | 'profile';
+export type TabID = 'today' | 'plan' | 'progression' | 'goal' | 'profile' | 'coach';
 
 export interface TrainingBlock {
   id: string;

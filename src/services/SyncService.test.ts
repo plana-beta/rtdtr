@@ -58,6 +58,21 @@ describe('SyncService', () => {
       expect(actual.normalizedPower).toBe(220);
     });
 
+    it('generates a deterministic ID when sourceId is missing to ensure idempotence', () => {
+      const ext = {
+        source: 'google_health_connect',
+        sport: 'Ride',
+        startTime: '2023-11-15T10:00:00Z',
+        duration: 3600
+      } as any;
+      const actual1 = normalizeWorkout(ext);
+      const actual2 = normalizeWorkout(ext);
+      
+      expect(actual1.id).toBe(actual2.id);
+      expect(actual1.sourceId).toBe('generated-Ride-2023-11-15-60');
+      expect(actual1.id).toBe('google_health_connect-generated-Ride-2023-11-15-60');
+    });
+
     it('preserves the local date correctly when close to midnight without UTC shift issues', () => {
       // Local time string provided by native adapter (e.g., Apple Health usually provides local ISO strings or offset strings)
       // Representing 23:50 local time on Nov 15.

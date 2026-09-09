@@ -133,7 +133,7 @@ export function adaptPlan(
                planned.explanation = "Séance allégée en raison d'une fatigue élevée. On favorise la récupération.";
                planned.status = 'adapted';
                result.changed = true;
-            } else if (fatigueLevel === 'extreme' && planned.targetDurationMin > 45) {
+            } else if (fatigueLevel === 'extreme' && planned.targetDurationMin > 45 && !planned.explanation?.includes('Volume réduit')) {
                // Reduce volume
                const newDuration = Math.max(30, Math.round(planned.targetDurationMin * 0.6));
                result.changes.push({

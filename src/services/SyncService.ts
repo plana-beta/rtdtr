@@ -46,10 +46,13 @@ export function normalizeWorkout(ext: ExternalWorkout): ActualWorkout {
     tss = calculateDurationTSS(durationMin);
   }
 
+  // Generate deterministic ID if sourceId is missing to ensure idempotence
+  const deterministicId = ext.sourceId || `generated-${ext.sport}-${dateStr}-${durationMin}`;
+
   return {
-    id: `${ext.source}-${ext.sourceId || crypto.randomUUID()}`,
+    id: `${ext.source}-${deterministicId}`,
     source: ext.source as ActualWorkout['source'],
-    sourceId: ext.sourceId,
+    sourceId: deterministicId,
     sport: normalizeSport(ext.sport),
     date: dateStr,
     startTime: ext.startTime,
@@ -72,11 +75,16 @@ export function isDuplicateWorkout(newWorkout: ActualWorkout, existingWorkouts: 
 
     // 2. Same sport, very close start time (within 10 minutes), similar duration (within 5 minutes)
     if (newWorkout.sport === existing.sport && newWorkout.date === existing.date) {
-      const timeDiff = Math.abs(parseISO(newWorkout.startTime).getTime() - parseISO(existing.startTime).getTime()) / 60000;
-      const durDiff = Math.abs((newWorkout.durationMin || 0) - (existing.durationMin || 0));
+      const newTime = parseISO(newWorkout.startTime).getTime();
+      const existingTime = parseISO(existing.startTime).getTime();
       
-      if (timeDiff < 10 && durDiff < 5) {
-        return true;
+      if (!isNaN(newTime) && !isNaN(existingTime)) {
+        const timeDiff = Math.abs(newTime - existingTime) / 60000;
+        const durDiff = Math.abs((newWorkout.durationMin || 0) - (existing.durationMin || 0));
+        
+        if (timeDiff < 10 && durDiff < 5) {
+          return true;
+        }
       }
     }
 

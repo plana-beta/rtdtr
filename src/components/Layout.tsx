@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Calendar, BarChart2, Target, User, Settings, Activity as ActivityIcon } from 'lucide-react';
+import { Calendar, BarChart2, Target, User, Settings, Activity as ActivityIcon, Bot } from 'lucide-react';
 import { TabID } from '../types';
 import { cn } from '../utils';
 
@@ -13,6 +13,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
   const navItems = [
     { id: 'today', icon: ActivityIcon, label: 'Aujourd\'hui' },
     { id: 'plan', icon: Calendar, label: 'Plan' },
+    { id: 'coach', icon: Bot, label: 'Coach' },
     { id: 'progression', icon: BarChart2, label: 'Progression' },
     { id: 'goal', icon: Target, label: 'Objectif' },
     { id: 'profile', icon: User, label: 'Profil' },
