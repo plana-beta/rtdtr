@@ -20,6 +20,8 @@ export interface AthleteProfile {
 export interface Goal {
   id: string;
   title: string;
+  target?: string;
+  distanceKm?: number;
   date: string;
   type: 'sprint' | 'olympic' | 'half' | 'ironman' | 'custom';
   sportFocus: Sport | 'Triathlon';
@@ -28,10 +30,12 @@ export interface Goal {
 
 export interface PlannedWorkout {
   id: string;
+  planId?: string;
   sport: Sport;
   date: string; // YYYY-MM-DD
   title: string;
   description?: string;
+  durationMin?: number;
   targetDurationMin: number;
   targetIntensity: {
     type: 'zone' | 'hr' | 'power' | 'pace' | 'rpe';
@@ -44,6 +48,7 @@ export interface PlannedWorkout {
 
 export interface ActualWorkout {
   id: string;
+  title?: string;
   source: 'apple_health' | 'google_health_connect' | 'manual' | 'demo' | 'Garmin';
   sourceId?: string;
   sport: Sport;
@@ -54,6 +59,7 @@ export interface ActualWorkout {
   averageHeartRate?: number;
   normalizedPower?: number;
   tss?: number;
+  temperature?: number;
   plannedWorkoutId?: string;
 }
 
@@ -83,3 +89,6 @@ export interface Recommendation {
   relatedWorkoutId?: string;
   createdAt: string;
 }
+
+export * from './coachTypes';
+export * from './athleteHistoryTypes';

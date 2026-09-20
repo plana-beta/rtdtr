@@ -22,6 +22,15 @@ export interface AdaptationResult {
   generatedAt: string;
 }
 
+export type FatigueLevel = 'normal' | 'high' | 'extreme';
+
+export function getFatigueLevel(pmc: { tsb: number; atl: number } | null | undefined): FatigueLevel {
+  if (!pmc) return 'normal';
+  if (pmc.tsb < -30) return 'extreme';
+  if (pmc.tsb < -20 || pmc.atl > 80) return 'high';
+  return 'normal';
+}
+
 export function adaptPlan(
   profile: AthleteProfile,
   plannedWorkouts: PlannedWorkout[],
@@ -48,9 +57,7 @@ export function adaptPlan(
   const todayPmc = pmc.find(p => p.date === todayStr);
   const currentPmc = todayPmc || (pmc.length > 0 ? pmc[pmc.length - 1] : { tsb: 0, atl: 0, ctl: 0, tss: 0, date: todayStr });
 
-  let fatigueLevel = 'normal';
-  if (currentPmc.tsb < -20 || currentPmc.atl > 80) fatigueLevel = 'high';
-  if (currentPmc.tsb < -30) fatigueLevel = 'extreme';
+  const fatigueLevel = getFatigueLevel(currentPmc);
 
   // Let's sort to iterate chronologically
   result.updatedPlannedWorkouts.sort((a, b) => a.date.localeCompare(b.date));
